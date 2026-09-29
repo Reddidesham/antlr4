@@ -1,0 +1,71 @@
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.tree.*;
+
+public class Main {
+
+    public static void main(String[] args) {
+
+        String input = "10 + 2 * (3 + 4)";
+
+        // Lexer
+        ExprLexer lexer = new ExprLexer(
+                CharStreams.fromString(input)
+        );
+
+        // Token stream
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+
+        // Parser
+        ExprParser parser = new ExprParser(tokens);
+
+        // Parse
+        ParseTree tree = parser.prog();
+
+        // Print parse tree
+        System.out.println("Parse Tree: " + tree.toStringTree(parser));
+
+        // Evaluate directly from the parse tree
+        int result = evaluate(tree, parser);
+
+        System.out.println("Input: " + input);
+        System.out.println("Result: " + result);
+    }
+
+    private static int evaluate(ParseTree tree, ExprParser parser) {
+
+        if (tree instanceof ExprParser.ProgContext prog) {
+            return evaluate(prog.expr(), parser);
+        }
+
+        if (tree instanceof ExprParser.ExprContext expr) {
+
+            // Number
+            if (expr.INT() != null) {
+                return Integer.parseInt(expr.INT().getText());
+            }
+
+            // Parentheses
+            if (expr.expr().size() == 1) {
+                return evaluate(expr.expr(0), parser);
+            }
+
+            // Binary operation
+            int left = evaluate(expr.expr(0), parser);
+            int right = evaluate(expr.expr(1), parser);
+
+            String operator = expr.op.getText();
+
+            return switch (operator) {
+                case "+" -> left + right;
+                case "-" -> left - right;
+                case "*" -> left * right;
+                case "/" -> left / right;
+                default -> throw new RuntimeException(
+                        "Unknown operator: " + operator
+                );
+            };
+        }
+
+        throw new RuntimeException("Unexpected expression");
+    }
+}
